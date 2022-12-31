@@ -1,0 +1,131 @@
+/* Query 1 */
+WITH Purchases_count_table AS (
+  SELECT 
+    c.Country, 
+    g.Name, 
+    count(il.InvoiceLineId) as Purchases_count 
+  FROM 
+    InvoiceLine as il 
+    JOIN Track as t ON il.TrackId = t.TrackId 
+    JOIN Genre as g ON t.GenreId = g.GenreId 
+    JOIN Invoice as i ON il.InvoiceId = i.InvoiceId 
+    JOIN Customer as c ON c.CustomerId = i.CustomerId 
+  GROUP BY 
+    1, 
+    2
+) 
+SELECT 
+  Purchases_count_table.Country, 
+  Purchases_count_table.Name AS Genre_Name, 
+  Purchases_count_table.Purchases_count AS Purchases_count_Max
+FROM 
+  Purchases_count_table 
+  JOIN (
+    SELECT 
+      Country, 
+      MAX(Purchases_count) AS Purchases_Max 
+    FROM 
+      Purchases_count_table 
+    GROUP BY 
+      Country
+  ) Purchases_Max_table ON Purchases_count_table.Country = Purchases_Max_table.Country 
+WHERE 
+  Purchases_count_table.Purchases_count = Purchases_Max_table.Purchases_Max 
+ORDER BY 
+  1;
+
+/* Query 2 */
+SELECT 
+  g.name AS Genre_Name, 
+  AVG(t.Milliseconds) AS Average_Milliseconds
+FROM 
+  Track as t 
+  JOIN Genre as g on t.Genreid = g.Genreid 
+GROUP BY 
+  1 
+ORDER BY 
+  2 DESC
+
+/* Query 3 */
+WITH Total_Spent_table AS(
+  SELECT 
+    c.Country, 
+    c.FirstName || ' ' || c.LastName AS Customer_Name, 
+    SUM(total) as Total_Spent
+  FROM 
+    Invoice as i 
+    JOIN Customer as c ON i.CustomerId = c.CustomerId 
+  GROUP BY 
+    1, 
+    2
+) 
+SELECT 
+  Total_Spent_table.Country,
+  Total_Spent_table.Customer_Name,
+  Total_Spent_table.Total_Spent
+FROM 
+  Total_Spent_table 
+  JOIN (
+    SELECT 
+      max(Total_Spent) as Total_Spent_Max, 
+      Country 
+    FROM 
+      Total_Spent_table 
+    GROUP BY 
+      Country
+  ) Total_Spent_Max_table ON Total_Spent_table.Country = Total_Spent_Max_table.Country 
+WHERE 
+  Total_Spent_table.Total_Spent = Total_Spent_Max_table.Total_Spent_Max
+
+/* Query 4-1 */
+SELECT 
+  ar.name AS Artist_Name, 
+  sum(il.UnitPrice*il.Quantity) AS Amount_Spent
+FROM 
+  Track as t 
+  JOIN Album as al ON t.AlbumId = al.AlbumId 
+  JOIN Artist as ar ON ar.ArtistId = al.ArtistId 
+  JOIN InvoiceLine as il ON t.TrackId = il.TrackId 
+  JOIN Invoice as i ON i.InvoiceId = il.InvoiceId 
+GROUP BY 
+  1 
+ORDER BY 
+  2 DESC
+
+/* Query 4-2 */
+WITH Amount_Spent_table AS (
+  SELECT 
+    ar.name AS Artist_Name, 
+    sum(il.UnitPrice*il.Quantity) AS Amount_Spent 
+  FROM 
+    Track as t 
+    JOIN Album as al ON t.AlbumId = al.AlbumId 
+    JOIN Artist as ar ON ar.ArtistId = al.ArtistId 
+    JOIN InvoiceLine as il ON t.TrackId = il.TrackId 
+    JOIN Invoice as i ON i.InvoiceId = il.InvoiceId 
+  GROUP BY 
+    1 
+  ORDER BY 
+    2 DESC 
+  LIMIT 
+    1
+) 
+SELECT 
+  c.CustomerId, 
+  c.FirstName || ' ' || c.LastName AS Customer_Name, 
+  sum(il.UnitPrice*il.Quantity) AS Total_Unit_Price, 
+  Amount_Spent_table.Artist_Name 
+FROM 
+  Track as t, 
+  Amount_Spent_table 
+  JOIN Album as al ON t.AlbumId = al.AlbumId 
+  JOIN Artist as ar ON ar.ArtistId = al.ArtistId 
+  JOIN InvoiceLine as il ON t.TrackId = il.TrackId 
+  JOIN Invoice as i ON i.InvoiceId = il.InvoiceId 
+  JOIN Customer as c ON c.CustomerId = i.CustomerId 
+WHERE 
+  ar.Name = Amount_Spent_table.Artist_Name 
+GROUP BY 
+  1 
+ORDER BY 
+  3 DESC
